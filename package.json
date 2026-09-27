@@ -26,5 +26,8 @@
   },
   "imports": {
     "#/*": "./src/*"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
   }
 }

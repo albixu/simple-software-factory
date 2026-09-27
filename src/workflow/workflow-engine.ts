@@ -1,3 +1,6 @@
+import { WorkflowNode } from "#/workflow/nodes/workflow-node.js";
+import { WorkflowState } from "#/workflow/workflow-state.js";
+
 export class WorkflowEngine {
 
     constructor(

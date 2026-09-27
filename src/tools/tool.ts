@@ -1,5 +1,16 @@
-export interface Tool<Input = unknown, Output = unknown>  {
-    readonly name: string;
+import { z } from "zod";
+import { ToolDefinition } from "#/llm/tool-definition";
 
-    execute(input: Input): Promise<Output>;
+export interface Tool<
+  I = unknown,
+  O = unknown
+> {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: z.ZodType<I>;
+  readonly llmDefinition: ToolDefinition;
+
+  execute(
+    input: I
+  ): Promise<O>;
 }
