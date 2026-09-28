@@ -1,14 +1,14 @@
-import { AgentDefinition } from "#/agents/agent.js";
+import { AgentDefinition } from "#/runtime/agent-definition.js";
 import { AgentGateway } from "#/gateway/agent-gateway.js";
-import { LLMClient } from "#/runtime/llm.js";
+import { LLMClient } from "#/llm/llm-client.js";
 import { Message } from "#/runtime/message.js";
-import { ExecutionContext } from "#/runtimne/execution-context.js";
+import { ExecutionContext } from "#/runtime/execution-context.js";
 import { ToolRegistry } from "#/tools/tool-registry.js";
 
 
 export interface AgentRuntime {
     execute<I,O>(
-        agent: AgentDefinition,
+        agent: AgentDefinition<O>,
         input: I,
         context: ExecutionContext
     ): Promise<O>

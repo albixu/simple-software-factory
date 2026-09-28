@@ -1,121 +1,46 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
-import { SearchCodeTool } from "#/tools/code-search/search-code.tool.ts";
-import { ToolRegistry } from "#/tools/tool-registry.ts";
+import { SearchCodeTool } from "#/tools/code-search/search-code.tool.js";
+import { ToolRegistry } from "#/tools/tool-registry.js";
 
-import { AgentGateway } from "#/gateway/agent-gateway.ts";
+import { AgentGateway } from "#/gateway/agent-gateway.js";
 
-import { PlanningNode } from "#/workflow/nodes/planning.node.ts";
-import { WorkflowEngine } from "#/workflow/workflow-engine.ts";
+import { PlanningNode } from "#/workflow/nodes/planning.node.js";
+import { WorkflowEngine } from "#/workflow/workflow-engine.js";
 
-import { FakePlannerAgent } from "#/agents/planner/fake-planner.agent.ts";
+import { FakePlannerAgent } from "#/agents/planner/fake-planner.agent.js";
+import { WorkflowState } from "#/workflow/workflow-state.js";
 
 
 async function main(): Promise<void> {
-  /*
-   * --------------------------------------------------
-   * 1. Infrastructure
-   * --------------------------------------------------
-   */
 
-  const toolRegistry =
-    new ToolRegistry();
+  const toolRegistry = new ToolRegistry();
+  toolRegistry.register(new SearchCodeTool());
 
-  toolRegistry.register(
-    new SearchCodeTool()
-  );
+  const gateway = new AgentGateway(toolRegistry);
 
+  const planner = new FakePlannerAgent();
 
-  /*
-   * --------------------------------------------------
-   * 2. Gateway
-   * --------------------------------------------------
-   *
-   * All tool executions will eventually pass through
-   * this gateway.
-   *
-   * PolicyEngine, AuditStore and limits will be added
-   * here progressively.
-   */
+  const planningNode = new PlanningNode(planner);
 
-  const gateway =
-    new AgentGateway(
-      toolRegistry
-    );
+  const workflowEngine = new WorkflowEngine([planningNode]);
 
+  const workflowId = randomUUID();
 
-  /*
-   * --------------------------------------------------
-   * 3. Agents
-   * --------------------------------------------------
-   *
-   * We temporarily keep FakePlannerAgent because
-   * DefaultAgentRuntime + real LLMClient are not yet
-   * implemented.
-   */
-
-  const planner =
-    new FakePlannerAgent();
-
-
-  /*
-   * --------------------------------------------------
-   * 4. Workflow nodes
-   * --------------------------------------------------
-   */
-
-  const planningNode =
-    new PlanningNode(
-      planner
-    );
-
-
-  /*
-   * --------------------------------------------------
-   * 5. Workflow engine
-   * --------------------------------------------------
-   */
-
-  const workflowEngine =
-    new WorkflowEngine(new Map([
-      [planningNode.id, planningNode]
-    ]));
-
-
-  /*
-   * --------------------------------------------------
-   * 6. Initial workflow state
-   * --------------------------------------------------
-   */
-
-  const workflowId =
-    randomUUID();
-
-  const traceId =
-    randomUUID();
+  const traceId = randomUUID();
 
   const initialState: WorkflowState = {
     workflowId,
-
     traceId,
-
     workspace: {
       id: `workspace-${workflowId}`,
-
-      /*
-       * For now we use the current project directory
-       * as the repository workspace.
-       */
       root: resolve(process.cwd())
     },
 
     issue: {
       id: "ISSUE-001",
-
-      title:
-        "ORA-30926 updating template",
-
+      title: "ORA-30926 updating template",
       description:
         "Updating a template sometimes fails with " +
         "ORA-30926: unable to get a stable set of rows " +
@@ -131,48 +56,20 @@ async function main(): Promise<void> {
     }
   };
 
-
-  /*
-   * --------------------------------------------------
-   * 7. Run workflow
-   * --------------------------------------------------
-   */
-
   console.log(
     "Starting workflow",
-    {
-      workflowId,
-      traceId,
-      workspace:
-        initialState.workspace.root
-    }
+    initialState.workflowId
   );
 
-  const finalState =
-    await workflowEngine.run(
-      initialState
-    );
+  const finalState = await workflowEngine.run(initialState);
 
   console.log(
-    "Workflow finished",
-    {
-      status:
-        finalState.status,
-
-      plan:
-        finalState.plan
-    }
+    JSON.stringify(
+      finalState,
+      null,
+      2
+    )
   );
-
-
-  /*
-   * Gateway is currently created but not used by the
-   * FakePlannerAgent.
-   *
-   * It will become active when FakePlannerAgent is
-   * replaced by DefaultAgentRuntime.
-   */
-  void gateway;
 }
 
 

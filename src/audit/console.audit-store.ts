@@ -1,3 +1,5 @@
+import type { AuditEvent, AuditStore } from "#/audit/audit-store.js";
+
 export class ConsoleAuditStore implements AuditStore {
 
     async append(event: AuditEvent): Promise<void> {

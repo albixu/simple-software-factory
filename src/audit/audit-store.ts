@@ -16,7 +16,7 @@ export interface AuditEvent {
 }
 
 
-interface AuditStore {
+export interface AuditStore {
     
     append(event: AuditEvent): Promise<void>;
 }

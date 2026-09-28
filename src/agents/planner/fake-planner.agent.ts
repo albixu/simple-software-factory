@@ -1,9 +1,6 @@
-import { Agent } from "#/agents/agent.ts";
-import { PlannerInput } from "#/agents/planner/planner-input.ts";
-
-import {
-  ImplementationPlan
-} from "#/domain/implementation-plan";
+import { Agent } from "#/agents/agent.js";
+import { PlannerInput } from "#/agents/planner/planner-input.js";
+import { ImplementationPlan } from "#/domain/implementation-plan.js";
 
 
 export class FakePlannerAgent
@@ -14,14 +11,11 @@ export class FakePlannerAgent
 
   readonly id = "planner";
 
-  async execute(
-    input: PlannerInput
-  ): Promise<ImplementationPlan> {
+  async run(_input: PlannerInput): Promise<ImplementationPlan> {
 
     return {
       rootCause:
-        "The MERGE source query may return multiple " +
-        "rows for the same target row.",
+        "The MERGE source query may return multiple rows for the same target row.",
 
       confidence: 0.8,
 

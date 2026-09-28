@@ -1,13 +1,24 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "node16",
-    "rootDir": "./src",
-    "outDir": "./dist",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    "rootDir": ".",
+    "outDir": "dist",
+    
     "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+
+    "types": ["node"]
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts"
+  ]
 }

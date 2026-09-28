@@ -1,4 +1,4 @@
-import { WorkspaceContext } from "#/runtime/workspace-context.ts";
+import { WorkspaceContext } from "#/runtime/workspace-context.js";
 
 export interface ExecutionContext {
   workflowId: string;

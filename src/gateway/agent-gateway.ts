@@ -1,3 +1,6 @@
+import { ToolRegistry } from "#/tools/tool-registry.js";
+import { ToolRequest } from "#/tools/tool-request.js";
+
 export class AgentGateway {
 
     constructor(private readonly tools: ToolRegistry) {}
@@ -7,7 +10,8 @@ export class AgentGateway {
         // Policies vendrán después
 
         const tool = this.tools.get(request.tool);
+        const input = tool.inputSchema.parse(request.arguments);
 
-        return tool.execute(request.arguments);
+        return tool.execute(input);
     }
 }

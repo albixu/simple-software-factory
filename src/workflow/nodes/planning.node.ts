@@ -1,32 +1,31 @@
-import { PlannerAgent } from "#/agents/planner/planner.agent.ts";
-import { AgentRuntime } from "#/runtime/agent-runtime.js";
-import { WorkflowNode } from "#/workflow/workflow-node.js";
+import { Agent } from "#/agents/agent.js";
+import { PlannerInput } from "#/agents/planner/planner-input.js";
+import { ImplementationPlan } from "#/domain/implementation-plan.js";
+import { WorkflowNode } from "#/workflow/nodes/workflow-node.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
+import { WorkflowStatus } from "#/workflow/workflow-status.js";
 
 export class PlanningNode implements WorkflowNode {
-    readonly id: string = 'planning';
+    readonly id: WorkflowStatus = 'planning' as const;
 
     constructor(
-        private readonly runtime: AgentRuntime
+        private readonly planner: Agent<PlannerInput, ImplementationPlan>
     ) {}
 
     async execute(state: WorkflowState): Promise<WorkflowState> {
-        const plan = await this.runtime.execute(
-            PlannerAgent,
+        const plan = await this.planner.run(
             {
                 issue: state.issue
-            },
-            {
-                workflowId: state.workflowId,
-                traceId: state.traceId,
-                workspace: state.workspace,
-                attempt: 1
             }
         );
 
         return {
             ...state,
             plan,
+            attempts: {
+                ...state.attempts,
+                planning: state.attempts.planning + 1
+            },
             status: plan.confidence >= 0.70 ? 'implementing' : 'human_review'
         };
     }

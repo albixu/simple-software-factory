@@ -1,5 +1,8 @@
+import { WorkflowState } from "#/workflow/workflow-state.js";
+import { WorkflowStatus } from "#/workflow/workflow-status.js";
+
 export interface WorkflowNode {
-    readonly id: string;
+    readonly id: WorkflowStatus;
 
     execute(state: WorkflowState): Promise<WorkflowState>;
 }

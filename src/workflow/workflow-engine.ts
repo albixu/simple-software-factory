@@ -1,23 +1,40 @@
 import { WorkflowNode } from "#/workflow/nodes/workflow-node.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
+import { WorkflowStatus } from "#/workflow/workflow-status.js";
 
 export class WorkflowEngine {
 
-    constructor(
-        private readonly nodes: Map<string, WorkflowNode>
-    ) {}
+    private readonly nodes = new Map<WorkflowStatus, WorkflowNode>
 
-    async run(state: WorkflowState): Promise<WorkflowState> {
-        while(!['completed', 'failed', 'human_review'].includes(state.status)) {
+    constructor(
+        nodes: WorkflowNode[]    
+    ) {
+        for (const node of nodes) {
+            this.nodes.set(
+                node.id,
+                node
+            );
+        }
+    }
+
+    async run(initialState: WorkflowState): Promise<WorkflowState> {
+        let state = initialState;
+
+        while(!this.isTerminal(state.status)) {
             const node = this.nodes.get(state.status);
 
             if (!node) {
-                throw new Error(`No node for state: ${state.status}`);
+                return state;
             }
 
             state = await node.execute(state);
         }
 
         return state;
+    }
+
+
+    private isTerminal(status: WorkflowStatus): boolean {
+        return ["completed", "failed", "human_review"].includes(status);
     }
 }

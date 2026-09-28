@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ToolDefinition } from "#/llm/tool-definition";
+import { ToolDefinition } from "#/llm/tool-definition.js";
 
 export interface Tool<
   I = unknown,

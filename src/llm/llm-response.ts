@@ -1,4 +1,4 @@
-import { ToolCall } from "#/llm/tool-call";
+import { ToolCall } from "#/llm/tool-call.js";
 
 export type LLMResponse =
   | ToolCallsResponse
@@ -11,10 +11,5 @@ export interface ToolCallsResponse {
 
 export interface FinalResponse {
   type: "final";
-
-  /**
-   * Still unknown because it has not yet
-   * been validated against AgentDefinition.outputSchema.
-   */
   output: unknown;
 }

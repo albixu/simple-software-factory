@@ -1,9 +1,8 @@
-import { ToolDefinition } from "#/llm/tool-definition";
-import { Tool } from "#/tools/tool";
+import { ToolDefinition } from "#/llm/tool-definition.js";
+import { Tool } from "#/tools/tool.js";
 
 export class ToolRegistry {
-  private readonly tools =
-    new Map<string, Tool>();
+  private readonly tools = new Map<string, Tool>();
 
   register(tool: Tool): void {
     if (this.tools.has(tool.name)) {

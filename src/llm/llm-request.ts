@@ -1,8 +1,8 @@
-import { Message } from "../runtime/message.js";
-import { ToolDefinition } from "./tool-definition.js";
+import { ToolDefinition } from "#/llm/tool-definition.js";
+import { Message } from "#/runtime/message.js";
 
 export interface LLMRequest {
     instructions: string;
-    message: Message[];
+    messages: Message[];
     tools: ToolDefinition[];
 }

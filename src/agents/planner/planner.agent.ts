@@ -1,26 +1,5 @@
-import { z } from "zod";
-import { AgentDefinition } from "./agent.js";
-
-
-export const ImplementationPlanSchema = z.object({
-    rootCause: z.string(),
-    confidence: z.number()
-        .min(0)
-        .max(1),
-    evidence: z.array(
-        z.object({
-            file: z.string(),
-            description: z.string(),
-        })
-    ),
-    filesToModify: z.array(z.string()),
-    requiredTests: z.array(z.string()),
-    risks: z.array(z.string())
-});
-
-
-export type ImplementationPlan = z.infer<typeof ImplementationPlanSchema>;
-
+import { ImplementationPlan, ImplementationPlanSchema } from "#/domain/implementation-plan.js";
+import { AgentDefinition } from "#/runtime/agent-definition.js";
 
 export const PlannerAgent: AgentDefinition<ImplementationPlan> = {
     id: "planner",
@@ -37,8 +16,3 @@ export const PlannerAgent: AgentDefinition<ImplementationPlan> = {
     maxIteration: 8,
     outputSchema: ImplementationPlanSchema
 };
-
-
-export interface ImplementationResult {}
-export interface TestResult {}
-export interface ReviewResult{}

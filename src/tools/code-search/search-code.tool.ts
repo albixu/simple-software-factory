@@ -31,9 +31,6 @@ export class SearchCodeTool implements Tool<SearchCodeInput, SearchCodeResult> {
     input: SearchCodeInput
   ): Promise<SearchCodeResult> {
     
-    // Temporal hasta implementar ripgrep
-    // en la siguiente fase.
-    
     return {
       query: input.query,
       matches: [],
