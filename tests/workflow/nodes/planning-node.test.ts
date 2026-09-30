@@ -1,18 +1,16 @@
-import type { Agent } from "../src/agents/agent.js";
-import type { PlannerInput } from "../src/agents/planner/planner-input.js";
-import type { ImplementationPlan } from "../src/domain/implementation-plan.js";
+import type { Agent } from "#/agents/agent.js";
+import type { PlannerInput } from "#/agents/planner/planner-input.js";
+import type { ImplementationPlan } from "#/domain/implementation-plan.js";
 
 import {
-    describe,
-    expect,
-    it
+  describe,
+  expect,
+  it
 } from "vitest";
 
-import { FakePlannerAgent } from "../src/agents/planner/fake-planner.agent.js";
-
-import { PlanningNode } from "../src/workflow/nodes/planning.node.js";
-
-import { WorkflowState } from "../src/workflow/workflow-state.js";
+import { FakePlannerAgent } from "#/agents/planner/fake-planner.agent.js";
+import { PlanningNode } from "#/workflow/nodes/planning.node.js";
+import { WorkflowState } from "#/workflow/workflow-state.js";
 
 
 class LowConfidencePlanner

@@ -4,6 +4,7 @@ import { ImplementationPlan } from "#/domain/implementation-plan.js";
 import { WorkflowNode } from "#/workflow/nodes/workflow-node.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
 import { WorkflowStatus } from "#/workflow/workflow-status.js";
+import { ExecutionContext } from "../../runtime/execution-context.js";
 
 export class PlanningNode implements WorkflowNode {
     readonly id: WorkflowStatus = 'planning' as const;
@@ -13,10 +14,19 @@ export class PlanningNode implements WorkflowNode {
     ) {}
 
     async execute(state: WorkflowState): Promise<WorkflowState> {
+
+        const context: ExecutionContext = {
+            workflowId: state.workflowId,
+            traceId: state.traceId,
+            workspace: state.workspace,
+            attempt: state.attempts.planning + 1
+        };
+
         const plan = await this.planner.run(
             {
                 issue: state.issue
-            }
+            },
+            context
         );
 
         return {

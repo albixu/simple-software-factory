@@ -9,8 +9,11 @@ import { AgentGateway } from "#/gateway/agent-gateway.js";
 import { PlanningNode } from "#/workflow/nodes/planning.node.js";
 import { WorkflowEngine } from "#/workflow/workflow-engine.js";
 
-import { FakePlannerAgent } from "#/agents/planner/fake-planner.agent.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
+import { PlannerAgent } from "./agents/planner/planner.agent.js";
+import { LLMResponse } from "./llm/llm-response.js";
+import { ScriptedLLMClient } from "./llm/scripted-llm-client.js";
+import { DefaultAgentRuntime } from "./runtime/default-agent-runtime.js";
 
 
 async function main(): Promise<void> {
@@ -20,7 +23,30 @@ async function main(): Promise<void> {
 
   const gateway = new AgentGateway(toolRegistry);
 
-  const planner = new FakePlannerAgent();
+  const scriptedLLMClientResponses: LLMResponse[] = [
+    {
+      type: "final",
+      output: {
+          rootCause: "ISSUE-001",
+          confidence: 0.8,
+          evidence: [
+            {
+              file: '../prueba.ts',
+              description: 'Error de sintaxis'
+            } 
+          ],
+          filesToModify: ['../prueba.ts'],
+          proposedChanges: ['../prueba.ts'],
+          requiredTests: ['Error sintaxis corregido'],
+          risks: ['Que no se pueda ejecutar el programa']
+      }
+    }
+  ]
+  const llmClient = new ScriptedLLMClient(scriptedLLMClientResponses);
+  
+  const agentRuntime = new DefaultAgentRuntime(llmClient, gateway, toolRegistry);
+
+  const planner = new PlannerAgent(agentRuntime);
 
   const planningNode = new PlanningNode(planner);
 

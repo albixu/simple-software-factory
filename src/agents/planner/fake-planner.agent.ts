@@ -1,6 +1,7 @@
 import { Agent } from "#/agents/agent.js";
 import { PlannerInput } from "#/agents/planner/planner-input.js";
 import { ImplementationPlan } from "#/domain/implementation-plan.js";
+import { ExecutionContext } from "../../runtime/execution-context.js";
 
 
 export class FakePlannerAgent
@@ -11,7 +12,10 @@ export class FakePlannerAgent
 
   readonly id = "planner";
 
-  async run(_input: PlannerInput): Promise<ImplementationPlan> {
+  async run(
+    _input: PlannerInput,
+    _context: ExecutionContext
+  ): Promise<ImplementationPlan> {
 
     return {
       rootCause:

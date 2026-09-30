@@ -1,3 +1,5 @@
+import { ToolCall } from "../llm/tool-call.js";
+
 export type Message =
   | SystemMessage
   | UserMessage
@@ -16,7 +18,8 @@ export interface UserMessage {
 
 export interface AssistantMessage {
   role: "assistant";
-  content: string;
+  content?: string;
+  toolCalls?: ToolCall[];
 }
 
 export interface ToolMessage {
