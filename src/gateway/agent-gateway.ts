@@ -1,5 +1,6 @@
 import { ToolRegistry } from "#/tools/tool-registry.js";
 import { ToolRequest } from "#/tools/tool-request.js";
+import { ToolExecutionContext } from "../tools/tool-execution-context.js";
 
 export class AgentGateway {
 
@@ -11,7 +12,13 @@ export class AgentGateway {
 
         const tool = this.tools.get(request.tool);
         const input = tool.inputSchema.parse(request.arguments);
+        const toolContext: ToolExecutionContext = {
+            workflowId: request.context.workflowId,
+            traceId: request.context.traceId,
+            agentId: request.agentId,
+            workspace: request.context.workspace
+        };
 
-        return tool.execute(input);
+        return tool.execute(input, toolContext);
     }
 }

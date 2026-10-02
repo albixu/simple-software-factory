@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ToolDefinition } from "#/llm/tool-definition.js";
+import { ToolExecutionContext } from "#/tools/tool-execution-context.js";
 
 export interface Tool<
   I = unknown,
@@ -11,6 +12,7 @@ export interface Tool<
   readonly llmDefinition: ToolDefinition;
 
   execute(
-    input: I
+    input: I,
+    context: ToolExecutionContext
   ): Promise<O>;
 }

@@ -57,10 +57,10 @@ export class DefaultAgentRuntime implements AgentRuntime{
                 this.assertToolAllowed(agent, call.name);
 
                 const result = await this.gateway.execute({
-                    workflowId: context.workflowId,
                     agentId: agent.id,
                     tool: call.name,
-                    arguments: call.arguments
+                    arguments: call.arguments,
+                    context: context
                 });
 
                 messages.push({
