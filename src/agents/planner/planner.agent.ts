@@ -14,15 +14,26 @@ export class PlannerAgent implements Agent<PlannerInput, ImplementationPlan> {
 
             Investigate the issue before proposing changes.
 
-            Gather evidence using the available tools.
+            Use code.search to locate relevant code.
+
+            Use filesystem.read to inspect only the
+            relevant portions of discovered files.
+
+            Base conclusions on evidence gathered
+            from tools.
 
             Do not modify source code.
+
+            Do not invent files, code or evidence.
 
             If there is insufficient evidence,
             reduce confidence instead of inventing
             a root cause.
-                `.trim(),
-        allowedTools: ["code.search"],
+            `.trim(),
+        allowedTools: [
+            "code.search",
+            "filesystem.read"
+        ],
         maxIteration: 8,
         outputSchema: ImplementationPlanSchema
     };

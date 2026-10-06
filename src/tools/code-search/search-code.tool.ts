@@ -1,9 +1,9 @@
 import { ToolDefinition } from "#/llm/tool-definition.js";
 import { SearchCodeInput, SearchCodeInputSchema, SearchCodeMatch, SearchCodeResult } from "#/tools/code-search/search-code.types.js";
+import { ToolExecutionContext } from "#/tools/tool-execution-context.js";
 import { Tool } from "#/tools/tool.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { ToolExecutionContext } from "../tool-execution-context.js";
 
 
 const execFileAsync = promisify(execFile);

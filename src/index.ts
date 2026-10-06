@@ -9,17 +9,19 @@ import { AgentGateway } from "#/gateway/agent-gateway.js";
 import { PlanningNode } from "#/workflow/nodes/planning.node.js";
 import { WorkflowEngine } from "#/workflow/workflow-engine.js";
 
+import { PlannerAgent } from "#/agents/planner/planner.agent.js";
+import { LLMResponse } from "#/llm/llm-response.js";
+import { ScriptedLLMClient } from "#/llm/scripted-llm-client.js";
+import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
+import { FilesystemReadTool } from "#/tools/filesystem-read/filesystem-read.tool.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
-import { PlannerAgent } from "./agents/planner/planner.agent.js";
-import { LLMResponse } from "./llm/llm-response.js";
-import { ScriptedLLMClient } from "./llm/scripted-llm-client.js";
-import { DefaultAgentRuntime } from "./runtime/default-agent-runtime.js";
 
 
 async function main(): Promise<void> {
 
   const toolRegistry = new ToolRegistry();
   toolRegistry.register(new SearchCodeTool());
+  toolRegistry.register(new FilesystemReadTool());
 
   const gateway = new AgentGateway(toolRegistry);
 
