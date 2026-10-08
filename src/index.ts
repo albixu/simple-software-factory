@@ -12,6 +12,7 @@ import { WorkflowEngine } from "#/workflow/workflow-engine.js";
 import { PlannerAgent } from "#/agents/planner/planner.agent.js";
 import { LLMResponse } from "#/llm/llm-response.js";
 import { ScriptedLLMClient } from "#/llm/scripted-llm-client.js";
+import { DefaultPolicyEngine } from "#/policy/default-policy-engine.js";
 import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
 import { FilesystemReadTool } from "#/tools/filesystem-read/filesystem-read.tool.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
@@ -23,7 +24,8 @@ async function main(): Promise<void> {
   toolRegistry.register(new SearchCodeTool());
   toolRegistry.register(new FilesystemReadTool());
 
-  const gateway = new AgentGateway(toolRegistry);
+  const policy = new DefaultPolicyEngine();
+  const gateway = new AgentGateway(toolRegistry, policy);
 
   const scriptedLLMClientResponses: LLMResponse[] = [
     {

@@ -1,4 +1,4 @@
-import { ToolCall } from "../llm/tool-call.js";
+import { ToolCall } from "#/llm/tool-call.js";
 
 export type Message =
   | SystemMessage

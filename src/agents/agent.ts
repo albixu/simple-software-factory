@@ -1,4 +1,4 @@
-import { ExecutionContext } from "../runtime/execution-context.js";
+import { ExecutionContext } from "#/runtime/execution-context.js";
 
 export interface Agent<I, O> {
     readonly id: string;

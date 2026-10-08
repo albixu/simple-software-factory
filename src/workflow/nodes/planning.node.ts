@@ -1,10 +1,10 @@
 import { Agent } from "#/agents/agent.js";
 import { PlannerInput } from "#/agents/planner/planner-input.js";
 import { ImplementationPlan } from "#/domain/implementation-plan.js";
+import { ExecutionContext } from "#/runtime/execution-context.js";
 import { WorkflowNode } from "#/workflow/nodes/workflow-node.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
 import { WorkflowStatus } from "#/workflow/workflow-status.js";
-import { ExecutionContext } from "../../runtime/execution-context.js";
 
 export class PlanningNode implements WorkflowNode {
     readonly id: WorkflowStatus = 'planning' as const;

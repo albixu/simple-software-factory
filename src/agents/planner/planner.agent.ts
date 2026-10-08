@@ -1,9 +1,9 @@
+import { Agent } from "#/agents/agent.js";
+import { PlannerInput } from "#/agents/planner/planner-input.js";
 import { ImplementationPlan, ImplementationPlanSchema } from "#/domain/implementation-plan.js";
 import { AgentDefinition } from "#/runtime/agent-definition.js";
-import { AgentRuntime } from "../../runtime/agent-runtime.js";
-import { ExecutionContext } from "../../runtime/execution-context.js";
-import { Agent } from "../agent.js";
-import { PlannerInput } from "./planner-input.js";
+import { AgentRuntime } from "#/runtime/agent-runtime.js";
+import { ExecutionContext } from "#/runtime/execution-context.js";
 
 export class PlannerAgent implements Agent<PlannerInput, ImplementationPlan> {
     readonly id = "planner";

@@ -1,6 +1,6 @@
-import { LLMClient } from "./llm-client.js";
-import { LLMRequest } from "./llm-request.js";
-import { LLMResponse } from "./llm-response.js";
+import { LLMClient } from "#/llm/llm-client.js";
+import { LLMRequest } from "#/llm/llm-request.js";
+import { LLMResponse } from "#/llm/llm-response.js";
 
 export class ScriptedLLMClient implements LLMClient {
 

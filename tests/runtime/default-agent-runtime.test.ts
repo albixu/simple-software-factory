@@ -2,6 +2,9 @@ import { ImplementationPlan, ImplementationPlanSchema } from "#/domain/implement
 import { AgentGateway } from "#/gateway/agent-gateway.js";
 import { ScriptedLLMClient } from "#/llm/scripted-llm-client.js";
 import { ToolDefinition } from "#/llm/tool-definition.js";
+import { PolicyDecision } from "#/policy/policy-decision.js";
+import { PolicyEngine } from "#/policy/policy-engine.js";
+import { PolicyRequest } from "#/policy/policy-request.js";
 import { AgentDefinition } from "#/runtime/agent-definition.js";
 import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
 import { ToolExecutionContext } from "#/tools/tool-execution-context.js";
@@ -26,6 +29,12 @@ import { z } from "zod";
  * The DefaultAgentRuntime tests only need a deterministic
  * tool that behaves like code.search.
  */
+
+class AllowAllPolicy implements PolicyEngine {
+    async evaluate(_request: PolicyRequest): Promise<PolicyDecision> {
+      return { allowed: true };
+    }
+}
 
 const TestSearchInputSchema =
   z.object({
@@ -162,7 +171,7 @@ describe(
          * --------------------------------------------------
          */
 
-        const gateway = new AgentGateway(tools);
+        const gateway = new AgentGateway(tools, new AllowAllPolicy());
 
         /*
          * --------------------------------------------------
@@ -316,7 +325,7 @@ describe(
 
         tools.register(new TestSearchTool());
 
-        const gateway = new AgentGateway(tools);
+        const gateway = new AgentGateway(tools, new AllowAllPolicy);
         const runtime = new DefaultAgentRuntime(llm, gateway, tools);
         const definition: AgentDefinition<ImplementationPlan> = {
           id: "planner",
