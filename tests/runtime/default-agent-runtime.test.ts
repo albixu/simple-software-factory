@@ -1,3 +1,4 @@
+import { InMemoryAuditStore } from "#/audit/in-memory-audit-store.js";
 import { ImplementationPlan, ImplementationPlanSchema } from "#/domain/implementation-plan.js";
 import { AgentGateway } from "#/gateway/agent-gateway.js";
 import { ScriptedLLMClient } from "#/llm/scripted-llm-client.js";
@@ -171,7 +172,11 @@ describe(
          * --------------------------------------------------
          */
 
-        const gateway = new AgentGateway(tools, new AllowAllPolicy());
+        const gateway = new AgentGateway(
+          tools,
+          new AllowAllPolicy(),
+          new InMemoryAuditStore()
+        );
 
         /*
          * --------------------------------------------------
@@ -325,7 +330,7 @@ describe(
 
         tools.register(new TestSearchTool());
 
-        const gateway = new AgentGateway(tools, new AllowAllPolicy);
+        const gateway = new AgentGateway(tools, new AllowAllPolicy(), new InMemoryAuditStore());
         const runtime = new DefaultAgentRuntime(llm, gateway, tools);
         const definition: AgentDefinition<ImplementationPlan> = {
           id: "planner",

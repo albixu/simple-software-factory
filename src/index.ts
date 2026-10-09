@@ -16,6 +16,7 @@ import { DefaultPolicyEngine } from "#/policy/default-policy-engine.js";
 import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
 import { FilesystemReadTool } from "#/tools/filesystem-read/filesystem-read.tool.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
+import { InMemoryAuditStore } from "#/audit/in-memory-audit-store.js";
 
 
 async function main(): Promise<void> {
@@ -25,7 +26,8 @@ async function main(): Promise<void> {
   toolRegistry.register(new FilesystemReadTool());
 
   const policy = new DefaultPolicyEngine();
-  const gateway = new AgentGateway(toolRegistry, policy);
+  const audit = new InMemoryAuditStore();
+  const gateway = new AgentGateway(toolRegistry, policy, audit);
 
   const scriptedLLMClientResponses: LLMResponse[] = [
     {
@@ -100,6 +102,10 @@ async function main(): Promise<void> {
       2
     )
   );
+
+  const events = audit.getAll();
+
+  console.log(JSON.stringify(events, null, 2));
 }
 
 

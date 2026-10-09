@@ -1,4 +1,5 @@
-import type { AuditEvent, AuditStore } from "#/audit/audit-store.js";
+import { AuditEvent } from "#/audit/audit-event.js";
+import type { AuditStore } from "#/audit/audit-store.js";
 
 export class ConsoleAuditStore implements AuditStore {
 
