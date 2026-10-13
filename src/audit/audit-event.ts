@@ -14,6 +14,7 @@ export type AuditFailureStage =
 
 export interface AuditEvent {
     id: string;
+    operationId: string;
     timestamp: string;
     type: AuditEventType;
     workflowId: string;

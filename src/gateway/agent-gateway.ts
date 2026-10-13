@@ -16,7 +16,16 @@ export class AgentGateway {
     ) {}
 
     async execute(request: ToolRequest): Promise<unknown> {
-        await this.record("tool.requested", request);
+        const operationId = randomUUID();
+
+        const record = (
+            type: AuditEventType,
+            extra: Pick<AuditEvent, "durationMs" | "stage"> = {}
+        ): Promise<void> => {
+            return this.record(type, request, operationId, extra);
+        }
+
+        await record("tool.requested");
 
         let tool: Tool;
         let input: unknown;
@@ -25,9 +34,8 @@ export class AgentGateway {
             tool = this.tools.get(request.tool);
             input = tool.inputSchema.parse(request.arguments);
         } catch(error) {
-            await this.record(
+            await record(
                 "tool.failed",
-                request,
                 {
                     stage: "validation"
                 }
@@ -46,12 +54,10 @@ export class AgentGateway {
                 context: request.context
             });
         } catch (error) {
-            await this.record(
+            await record(
                 "tool.failed",
-                request,
                 {
-                stage:
-                    "authorization"
+                    stage: "authorization"
                 }
             );
 
@@ -59,11 +65,11 @@ export class AgentGateway {
         }
 
         if (!decision.allowed) {
-            await this.record("tool.denied", request);
+            await record("tool.denied");
             throw new Error(`Policy denied tool execution: ${decision.reason}`);
         }
 
-        await this.record("tool.authorized", request);
+        await record("tool.authorized");
 
         const toolContext: ToolExecutionContext = {
             workflowId: request.context.workflowId,
@@ -78,9 +84,8 @@ export class AgentGateway {
         try {
             result = await tool.execute(input, toolContext);
         } catch (error) {
-            await this.record(
+            await record(
                 "tool.failed",
-                request,
                 {
                     stage: "execution",
                     durationMs: performance.now() - startedAt
@@ -90,9 +95,8 @@ export class AgentGateway {
             throw error;
         }
 
-        await this.record(
+        await record(
             "tool.completed",
-            request,
             {
                 durationMs: performance.now() - startedAt
             }
@@ -105,10 +109,12 @@ export class AgentGateway {
     private async record(
         type: AuditEventType,
         request: ToolRequest,
+        operationId: string,
         extra: Pick<AuditEvent, "durationMs" | "stage"> = {}
     ): Promise<void> {
         const event: AuditEvent = {
             id: randomUUID(),
+            operationId,
             timestamp: new Date().toISOString(),
             type,
             workflowId: request.context.workflowId,

@@ -10,13 +10,14 @@ import { PlanningNode } from "#/workflow/nodes/planning.node.js";
 import { WorkflowEngine } from "#/workflow/workflow-engine.js";
 
 import { PlannerAgent } from "#/agents/planner/planner.agent.js";
+import { InMemoryAuditStore } from "#/audit/in-memory-audit-store.js";
 import { LLMResponse } from "#/llm/llm-response.js";
 import { ScriptedLLMClient } from "#/llm/scripted-llm-client.js";
+import { ToolMetricsAnalyzer } from "#/observability/tool-metrics-analyzer.js";
 import { DefaultPolicyEngine } from "#/policy/default-policy-engine.js";
 import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
 import { FilesystemReadTool } from "#/tools/filesystem-read/filesystem-read.tool.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
-import { InMemoryAuditStore } from "#/audit/in-memory-audit-store.js";
 
 
 async function main(): Promise<void> {
@@ -104,8 +105,11 @@ async function main(): Promise<void> {
   );
 
   const events = audit.getAll();
+  const analyzer = new ToolMetricsAnalyzer();
+  const metrics = analyzer.analyze(events, initialState.traceId, 8);
 
-  console.log(JSON.stringify(events, null, 2));
+  console.log("AUDIT EVENTS", JSON.stringify(events, null, 2));
+  console.log("TOOL METRICS", JSON.stringify(metrics, null, 2));
 }
 
 
