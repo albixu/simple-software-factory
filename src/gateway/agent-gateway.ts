@@ -6,13 +6,15 @@ import { ToolRegistry } from "#/tools/tool-registry.js";
 import { ToolRequest } from "#/tools/tool-request.js";
 import { Tool } from "#/tools/tool.js";
 import { randomUUID } from "node:crypto";
+import { ToolCallBudget } from "#/budget/tool-call-budget.js";
 
 export class AgentGateway {
 
     constructor(
         private readonly tools: ToolRegistry,
         private readonly policy: PolicyEngine,
-        private readonly audit: AuditStore
+        private readonly audit: AuditStore,
+        private readonly budget: ToolCallBudget
     ) {}
 
     async execute(request: ToolRequest): Promise<unknown> {
@@ -20,12 +22,20 @@ export class AgentGateway {
 
         const record = (
             type: AuditEventType,
-            extra: Pick<AuditEvent, "durationMs" | "stage"> = {}
+            extra: Pick<AuditEvent, "durationMs" | "stage" | "denialSource"> = {}
         ): Promise<void> => {
             return this.record(type, request, operationId, extra);
         }
 
+        /*
+         * 1. Registrar la petición
+         */
+
         await record("tool.requested");
+
+        /*
+         * 2. Localizar y validar la tool
+         */
 
         let tool: Tool;
         let input: unknown;
@@ -43,6 +53,10 @@ export class AgentGateway {
 
             throw error;
         }
+
+        /*
+         * 3. Evaluar la política
+         */
 
         let decision: Awaited<ReturnType<PolicyEngine["evaluate"]>>;
 
@@ -65,11 +79,58 @@ export class AgentGateway {
         }
 
         if (!decision.allowed) {
-            await record("tool.denied");
+            await record(
+                "tool.denied",
+                {
+                    denialSource: "policy"
+                }
+            );
             throw new Error(`Policy denied tool execution: ${decision.reason}`);
         }
 
+        /*
+         * 4. Reservar presupuesto (Todavía no se ha ejecutado la tool)
+         */
+
+        let budgetDecision: Awaited<ReturnType<ToolCallBudget["reserve"]>>;
+
+        try {
+            budgetDecision = await this.budget.reserve(request.context.workflowId);
+        } catch (error) {
+            await record(
+                "tool.failed",
+                {
+                    stage: "budget"
+                }
+            );
+
+            throw error;
+        }
+
+        if (!budgetDecision.allowed) {
+            await record(
+                "tool.denied",
+                {
+                    denialSource: "budget"
+                }
+            );
+
+            throw new Error(
+                `Tool-call budget exhausted for workflow `+
+                `${request.context.workflowId}: ` +
+                `${budgetDecision.used}/${budgetDecision.limit}`
+            );
+        }
+
+        /*
+         * 5. Registrar autorización
+         */
+
         await record("tool.authorized");
+
+        /*
+         * 6. Construir contexto confiable
+         */
 
         const toolContext: ToolExecutionContext = {
             workflowId: request.context.workflowId,
@@ -77,6 +138,10 @@ export class AgentGateway {
             agentId: request.agentId,
             workspace: request.context.workspace
         };
+
+        /*
+         * 7. Ejecutar herramienta
+         */
 
         const startedAt = performance.now();
         let result: unknown;
@@ -95,6 +160,10 @@ export class AgentGateway {
             throw error;
         }
 
+        /*
+         * 8. Registrar finalización
+         */
+
         await record(
             "tool.completed",
             {
@@ -110,7 +179,7 @@ export class AgentGateway {
         type: AuditEventType,
         request: ToolRequest,
         operationId: string,
-        extra: Pick<AuditEvent, "durationMs" | "stage"> = {}
+        extra: Pick<AuditEvent, "durationMs" | "stage" | "denialSource"> = {}
     ): Promise<void> {
         const event: AuditEvent = {
             id: randomUUID(),

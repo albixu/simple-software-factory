@@ -9,7 +9,13 @@ export type AuditEventType =
 export type AuditFailureStage = 
     | "validation"
     | "authorization"
-    | "execution";
+    | "execution"
+    | "budget";
+
+
+export type AuditDenialSource = 
+    | "policy"
+    | "budget";
 
 
 export interface AuditEvent {
@@ -25,4 +31,5 @@ export interface AuditEvent {
     workspaceId: string;
     durationMs?: number;
     stage?: AuditFailureStage;
+    denialSource?: AuditDenialSource;
 }

@@ -144,6 +144,7 @@ describe("ToolMetricsAnalyzer", () => {
         expect(metrics.failuresByStage).toEqual({
             validation: 1,
             authorization: 0,
+            budget: 0,
             execution: 1
         });
 

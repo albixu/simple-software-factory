@@ -13,6 +13,7 @@ import { ToolRegistry } from "#/tools/tool-registry.js";
 import { Tool } from "#/tools/tool.js";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { InMemoryToolCallBudget } from "../../src/budget/in-memory-tool-call-budget.js";
 
 
 /*
@@ -175,7 +176,8 @@ describe(
         const gateway = new AgentGateway(
           tools,
           new AllowAllPolicy(),
-          new InMemoryAuditStore()
+          new InMemoryAuditStore(),
+          new InMemoryToolCallBudget(100)
         );
 
         /*
@@ -330,7 +332,7 @@ describe(
 
         tools.register(new TestSearchTool());
 
-        const gateway = new AgentGateway(tools, new AllowAllPolicy(), new InMemoryAuditStore());
+        const gateway = new AgentGateway(tools, new AllowAllPolicy(), new InMemoryAuditStore(), new InMemoryToolCallBudget(100));
         const runtime = new DefaultAgentRuntime(llm, gateway, tools);
         const definition: AgentDefinition<ImplementationPlan> = {
           id: "planner",

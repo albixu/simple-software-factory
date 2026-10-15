@@ -9,11 +9,12 @@ import { ToolExecutionContext } from "#/tools/tool-execution-context.js";
 import { ToolRegistry } from "#/tools/tool-registry.js";
 import { Tool } from "#/tools/tool.js";
 import {
-    describe,
-    expect,
-    it
+  describe,
+  expect,
+  it
 } from "vitest";
 import { z } from "zod";
+import { InMemoryToolCallBudget } from "../../src/budget/in-memory-tool-call-budget.js";
 
 
 const SearchInputSchema = z.object({
@@ -165,7 +166,8 @@ describe("AgentGateway audit", () => {
         const gateway = new AgentGateway(
             tools,
             new DefaultPolicyEngine(),
-            audit
+            audit,
+            new InMemoryToolCallBudget(100)
           );
 
 
@@ -225,7 +227,8 @@ describe("AgentGateway audit", () => {
         const gateway = new AgentGateway(
             tools,
             new DefaultPolicyEngine(),
-            audit
+            audit,
+            new InMemoryToolCallBudget(100)
           );
 
 
@@ -262,7 +265,8 @@ describe("AgentGateway audit", () => {
         const gateway = new AgentGateway(
             tools,
             new DefaultPolicyEngine(),
-            audit
+            audit,
+            new InMemoryToolCallBudget(100)
           );
 
 
@@ -301,7 +305,8 @@ describe("AgentGateway audit", () => {
           new AgentGateway(
             tools,
             new DefaultPolicyEngine(),
-            new FailingAuditStore()
+            new FailingAuditStore(),
+            new InMemoryToolCallBudget(100)
           );
 
 

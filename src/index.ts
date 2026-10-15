@@ -18,6 +18,7 @@ import { DefaultPolicyEngine } from "#/policy/default-policy-engine.js";
 import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
 import { FilesystemReadTool } from "#/tools/filesystem-read/filesystem-read.tool.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
+import { InMemoryToolCallBudget } from "./budget/in-memory-tool-call-budget.js";
 
 
 async function main(): Promise<void> {
@@ -28,7 +29,8 @@ async function main(): Promise<void> {
 
   const policy = new DefaultPolicyEngine();
   const audit = new InMemoryAuditStore();
-  const gateway = new AgentGateway(toolRegistry, policy, audit);
+  const budget = new InMemoryToolCallBudget(5);
+  const gateway = new AgentGateway(toolRegistry, policy, audit, budget);
 
   const scriptedLLMClientResponses: LLMResponse[] = [
     {
@@ -108,6 +110,7 @@ async function main(): Promise<void> {
   const analyzer = new ToolMetricsAnalyzer();
   const metrics = analyzer.analyze(events, initialState.traceId, 8);
 
+  console.log("BUDGET USED:", budget.getUsed(initialState.workflowId));
   console.log("AUDIT EVENTS", JSON.stringify(events, null, 2));
   console.log("TOOL METRICS", JSON.stringify(metrics, null, 2));
 }

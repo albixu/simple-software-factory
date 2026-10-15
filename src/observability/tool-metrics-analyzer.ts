@@ -59,6 +59,7 @@ export class ToolMetricsAnalyzer {
         failuresByStage: {
           validation: 0,
           authorization: 0,
+          budget:0,
           execution: 0
         },
         byTool: {}
