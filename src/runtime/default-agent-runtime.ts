@@ -5,6 +5,7 @@ import { AgentRuntime } from "#/runtime/agent-runtime.js";
 import { ExecutionContext } from "#/runtime/execution-context.js";
 import { Message } from "#/runtime/message.js";
 import { ToolRegistry } from "#/tools/tool-registry.js";
+import { RecoverableToolError } from "#/tools/recoverable-tool-error.js";
 
 
 
@@ -28,6 +29,17 @@ export class DefaultAgentRuntime implements AgentRuntime{
                 content: JSON.stringify(input)
             }
         ];
+
+        const maxRecoverableToolErrors = agent.maxRecoverableToolErrors ?? 2;
+
+        if (
+            !Number.isSafeInteger(maxRecoverableToolErrors) ||
+            maxRecoverableToolErrors < 0
+        ) {
+            throw new Error("maxRecoverableToolErrors must be a non-negative save interger");
+        }
+
+        let recoverableErrors = 0;
 
         for(let iteration = 0; iteration < agent.maxIteration; iteration++) {
             const response = await this.llm.generate({
@@ -56,18 +68,57 @@ export class DefaultAgentRuntime implements AgentRuntime{
             for(const call of response.calls) {
                 this.assertToolAllowed(agent, call.name);
 
-                const result = await this.gateway.execute({
-                    agentId: agent.id,
-                    tool: call.name,
-                    arguments: call.arguments,
-                    context: context
-                });
+                try {
+                    const result = await this.gateway.execute({
+                        agentId: agent.id,
+                        tool: call.name,
+                        arguments: call.arguments,
+                        context: context
+                    });
 
-                messages.push({
-                    role: "tool",
-                    toolCallId: call.id,
-                    content: JSON.stringify(result)
-                });
+                    messages.push({
+                        role: "tool",
+                        toolCallId: call.id,
+                        content: JSON.stringify(result)
+                    });
+                } catch (error) {
+                    /*
+                     * Sólo recuperamos errores
+                     * explícitamente clasificados.
+                     */
+                    if (!(error instanceof RecoverableToolError)) {
+                        throw error;
+                    }
+
+                    recoverableErrors++;
+
+                    if (recoverableErrors > maxRecoverableToolErrors) {
+                        throw new Error(
+                            `Agent ${agent.id} exceeded recoverable tool error limit` +
+                            `(${maxRecoverableToolErrors})`,
+                            {cause: error}
+                        );
+                    }
+
+                    /*
+                     * No enviamos error.messge
+                     * ni detalles internos.
+                     */
+                    const toolErrorMessage = {
+                        ok: false,
+                        error: {
+                            code: error.code,
+                            message: error.safeMessage,
+                            retryable: error.retryable
+                        }
+                    };
+
+                    messages.push({
+                        role: "tool",
+                        toolCallId: call.id,
+                        content: JSON.stringify(toolErrorMessage)
+                    });
+                }
             }
         }
 

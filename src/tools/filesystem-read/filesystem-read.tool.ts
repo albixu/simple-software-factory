@@ -9,6 +9,25 @@ import { ToolExecutionContext } from "#/tools/tool-execution-context.js";
 import { Tool } from "#/tools/tool.js";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { relative } from "node:path";
+import { RecoverableToolError } from "#/tools/recoverable-tool-error.js";
+
+
+async function resolveExistingFile(path: string): Promise<string> {
+    try {
+        return await realpath(path);
+    } catch (error) {
+        if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === "ENOENT"
+        ) {
+            throw new RecoverableToolError("FILE_NOT_FOUND");
+        }
+
+        throw error;
+    }
+}
 
 
 const DEFAULT_MAX_LINES = 200;
@@ -55,8 +74,8 @@ export class FilesystemReadTool implements Tool<FilesystemReadInput, FilesystemR
          *
          * This prevents symlink escape.
          */
-        const realWorkspace = await realpath(context.workspace.root);
-        const realTarget = await realpath(target);
+        const realWorkspace = await resolveExistingFile(context.workspace.root);
+        const realTarget = await resolveExistingFile(target);
 
         this.assertInsideWorkspace(realWorkspace, realTarget);
 

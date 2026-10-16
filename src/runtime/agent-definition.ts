@@ -5,5 +5,6 @@ export interface AgentDefinition <O> {
     instructions: string;
     allowedTools: string[];
     maxIteration: number;
+    maxRecoverableToolErrors?: number;
     outputSchema: z.ZodType<O>;
 }
