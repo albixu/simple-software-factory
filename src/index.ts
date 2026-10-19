@@ -18,7 +18,8 @@ import { DefaultPolicyEngine } from "#/policy/default-policy-engine.js";
 import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
 import { FilesystemReadTool } from "#/tools/filesystem-read/filesystem-read.tool.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
-import { InMemoryToolCallBudget } from "./budget/in-memory-tool-call-budget.js";
+import { InMemoryToolCallBudget } from "#/budget/in-memory-tool-call-budget.js";
+import { RetryingToolExecutor } from "#/retry/retrying-tool-executor.js";
 
 
 async function main(): Promise<void> {
@@ -31,6 +32,16 @@ async function main(): Promise<void> {
   const audit = new InMemoryAuditStore();
   const budget = new InMemoryToolCallBudget(5);
   const gateway = new AgentGateway(toolRegistry, policy, audit, budget);
+
+  const retryingGateway = new RetryingToolExecutor(
+    gateway,
+    toolRegistry,
+    {
+      maxAttempts: 3,
+      baseDelayMs: 100,
+      maxDelayMs: 1000
+    }
+  );
 
   const scriptedLLMClientResponses: LLMResponse[] = [
     {
@@ -53,7 +64,7 @@ async function main(): Promise<void> {
   ]
   const llmClient = new ScriptedLLMClient(scriptedLLMClientResponses);
   
-  const agentRuntime = new DefaultAgentRuntime(llmClient, gateway, toolRegistry);
+  const agentRuntime = new DefaultAgentRuntime(llmClient, retryingGateway, toolRegistry);
 
   const planner = new PlannerAgent(agentRuntime);
 

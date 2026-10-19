@@ -1,4 +1,3 @@
-import { AgentGateway } from "#/gateway/agent-gateway.js";
 import { LLMClient } from "#/llm/llm-client.js";
 import { AgentDefinition } from "#/runtime/agent-definition.js";
 import { AgentRuntime } from "#/runtime/agent-runtime.js";
@@ -6,6 +5,7 @@ import { ExecutionContext } from "#/runtime/execution-context.js";
 import { Message } from "#/runtime/message.js";
 import { ToolRegistry } from "#/tools/tool-registry.js";
 import { RecoverableToolError } from "#/tools/recoverable-tool-error.js";
+import { ToolCallExecutor } from "#/runtime/tool-call-executor.js";
 
 
 
@@ -13,7 +13,7 @@ export class DefaultAgentRuntime implements AgentRuntime{
 
     constructor(
         private readonly llm: LLMClient,
-        private readonly gateway: AgentGateway,
+        private readonly gateway: ToolCallExecutor,
         private readonly tools: ToolRegistry
     ) {}
 

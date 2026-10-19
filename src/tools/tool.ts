@@ -10,6 +10,7 @@ export interface Tool<
   readonly description: string;
   readonly inputSchema: z.ZodType<I>;
   readonly llmDefinition: ToolDefinition;
+  readonly retrySafety?: "idempotent";
 
   execute(
     input: I,
