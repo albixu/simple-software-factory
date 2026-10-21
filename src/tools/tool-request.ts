@@ -5,4 +5,5 @@ export interface ToolRequest {
     tool: string;
     arguments: unknown;
     context: ExecutionContext;
+    signal?: AbortSignal;
 }

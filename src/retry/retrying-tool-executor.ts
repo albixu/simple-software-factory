@@ -2,7 +2,7 @@ import { ToolCallExecutor } from "#/runtime/tool-call-executor.js";
 import { RecoverableToolError } from "#/tools/recoverable-tool-error.js";
 import { ToolRegistry } from "#/tools/tool-registry.js";
 import { ToolRequest } from "#/tools/tool-request.js";
-import { setDefaultAutoSelectFamilyAttemptTimeout } from "node:net";
+import { setTimeout as sleepTimeout } from "node:timers/promises";
 
 export interface RetryOptions {
     maxAttempts: number;
@@ -12,10 +12,18 @@ export interface RetryOptions {
 }
 
 
-export type Sleep = (milliseconds: number) => Promise<void>;
+export type Sleep = (
+    milliseconds: number,
+    signal?: AbortSignal
+) => Promise<void>;
 
-const defaultSleep: Sleep = async millisedonds => {
-    await setDefaultAutoSelectFamilyAttemptTimeout(millisedonds);
+
+const defaultSleep: Sleep = async (millisedonds, signal) => {
+    await sleepTimeout(
+        millisedonds,
+        undefined,
+        signal ? { signal } : undefined
+    );
 };
 
 
@@ -35,6 +43,8 @@ export class RetryingToolExecutor implements ToolCallExecutor {
 
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
+                request.signal?.throwIfAborted();
+
                 /*
                  * Cada intento atraviesa el Gateway.
                  *
@@ -43,6 +53,8 @@ export class RetryingToolExecutor implements ToolCallExecutor {
                  */
                 return await this.gateway.execute(request);
             } catch (error) {
+                request.signal?.throwIfAborted();
+
                 /*
                  * Los errores desconocidos o fatales
                  * nunca se reintentan.
@@ -85,7 +97,9 @@ export class RetryingToolExecutor implements ToolCallExecutor {
                     this.options.baseDelayMs * 2 ** (attempt -1)
                 );
 
-                await(this.sleep(delayMs))
+                await this.sleep(delayMs, request.signal);
+
+                request.signal?.throwIfAborted();
             }
         }
 

@@ -5,4 +5,5 @@ export interface ToolExecutionContext {
   traceId: string;
   agentId: string;
   workspace: WorkspaceContext;
+  signal?: AbortSignal;
 }

@@ -55,7 +55,11 @@ export class SearchCodeTool implements Tool<SearchCodeInput, SearchCodeResult> {
         ],
         {
           cwd: context.workspace.root,
-          maxBuffer: 1024 * 1024
+          maxBuffer: 1024 * 1024,
+          ...(context.signal
+            ? { signal: context.signal }
+            : {}
+          )
         }
       );
 
@@ -68,6 +72,7 @@ export class SearchCodeTool implements Tool<SearchCodeInput, SearchCodeResult> {
         truncated
       };
     } catch (error: unknown) {
+      context.signal?.throwIfAborted();
       /*
        * ripgrep exit code 1 means:
        *

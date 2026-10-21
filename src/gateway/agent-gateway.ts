@@ -27,6 +27,8 @@ export class AgentGateway {
             return this.record(type, request, operationId, extra);
         }
 
+        request.signal?.throwIfAborted();
+
         /*
          * 1. Registrar la petición
          */
@@ -88,6 +90,8 @@ export class AgentGateway {
             throw new Error(`Policy denied tool execution: ${decision.reason}`);
         }
 
+        request.signal?.throwIfAborted();
+
         /*
          * 4. Reservar presupuesto (Todavía no se ha ejecutado la tool)
          */
@@ -136,7 +140,12 @@ export class AgentGateway {
             workflowId: request.context.workflowId,
             traceId: request.context.traceId,
             agentId: request.agentId,
-            workspace: request.context.workspace
+            workspace: request.context.workspace,
+
+            ...(request.signal
+                ? {signal: request.signal }
+                : {}
+            )
         };
 
         /*
@@ -147,6 +156,7 @@ export class AgentGateway {
         let result: unknown;
 
         try {
+            request.signal?.throwIfAborted();
             result = await tool.execute(input, toolContext);
         } catch (error) {
             await record(

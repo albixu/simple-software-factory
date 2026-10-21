@@ -11,15 +11,16 @@ import { WorkflowEngine } from "#/workflow/workflow-engine.js";
 
 import { PlannerAgent } from "#/agents/planner/planner.agent.js";
 import { InMemoryAuditStore } from "#/audit/in-memory-audit-store.js";
+import { InMemoryToolCallBudget } from "#/budget/in-memory-tool-call-budget.js";
 import { LLMResponse } from "#/llm/llm-response.js";
 import { ScriptedLLMClient } from "#/llm/scripted-llm-client.js";
 import { ToolMetricsAnalyzer } from "#/observability/tool-metrics-analyzer.js";
 import { DefaultPolicyEngine } from "#/policy/default-policy-engine.js";
+import { RetryingToolExecutor } from "#/retry/retrying-tool-executor.js";
 import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
+import { TimedToolCallExecutor } from "#/runtime/timed-tool-call-executor.js";
 import { FilesystemReadTool } from "#/tools/filesystem-read/filesystem-read.tool.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
-import { InMemoryToolCallBudget } from "#/budget/in-memory-tool-call-budget.js";
-import { RetryingToolExecutor } from "#/retry/retrying-tool-executor.js";
 
 
 async function main(): Promise<void> {
@@ -40,6 +41,17 @@ async function main(): Promise<void> {
       maxAttempts: 3,
       baseDelayMs: 100,
       maxDelayMs: 1000
+    }
+  );
+
+  const timedGateway = new TimedToolCallExecutor(
+    retryingGateway, 
+    {
+      defaultTimeoutMs: 5000,
+      timeoutMsByTool: {
+        "code.search": 10000,
+        "filesystem.read": 2000
+      }
     }
   );
 
@@ -64,7 +76,7 @@ async function main(): Promise<void> {
   ]
   const llmClient = new ScriptedLLMClient(scriptedLLMClientResponses);
   
-  const agentRuntime = new DefaultAgentRuntime(llmClient, retryingGateway, toolRegistry);
+  const agentRuntime = new DefaultAgentRuntime(llmClient, timedGateway, toolRegistry);
 
   const planner = new PlannerAgent(agentRuntime);
 
