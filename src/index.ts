@@ -1,14 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
-
 import { SearchCodeTool } from "#/tools/code-search/search-code.tool.js";
 import { ToolRegistry } from "#/tools/tool-registry.js";
-
 import { AgentGateway } from "#/gateway/agent-gateway.js";
-
 import { PlanningNode } from "#/workflow/nodes/planning.node.js";
 import { WorkflowEngine } from "#/workflow/workflow-engine.js";
-
 import { PlannerAgent } from "#/agents/planner/planner.agent.js";
 import { InMemoryAuditStore } from "#/audit/in-memory-audit-store.js";
 import { InMemoryToolCallBudget } from "#/budget/in-memory-tool-call-budget.js";
@@ -21,6 +17,8 @@ import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
 import { TimedToolCallExecutor } from "#/runtime/timed-tool-call-executor.js";
 import { FilesystemReadTool } from "#/tools/filesystem-read/filesystem-read.tool.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
+import { WorkflowDeadlineExecutor } from "#/workflow/workflow-deadline-executor.js";
+import { ExecutionContext } from "#/runtime/execution-context.js";
 
 
 async function main(): Promise<void> {
@@ -119,11 +117,46 @@ async function main(): Promise<void> {
     initialState.workflowId
   );
 
-  const finalState = await workflowEngine.run(initialState);
+  const deadlineExecutor = new WorkflowDeadlineExecutor(60_000); // 60 segundos para todo el workflow
+
+  const executionContext: ExecutionContext = {
+    workflowId: initialState.workflowId,
+    traceId: crypto.randomUUID(),
+    attempt: 1,
+    workspace: {
+      id: "workspace-local",
+      root: process.cwd()
+    }
+  };
+
+  const result = await deadlineExecutor.execute(
+    executionContext,
+    context =>
+      workflowEngine.run(
+        initialState,
+        context
+      )
+  );
+
+  switch (result.status) {
+    case "completed":
+      console.log("Workflow execution finished:", result.value);
+      break;
+    case "timed_out":
+      console.error("Workflow exceeded its 60-second deadline");
+      break;
+    case "cancelled":
+      console.log("Workflow was cancelled");
+      break;
+    case "failed":
+      console.error("Workflow execution failed:", result.error
+      );
+      break;
+  }
 
   console.log(
     JSON.stringify(
-      finalState,
+      result,
       null,
       2
     )

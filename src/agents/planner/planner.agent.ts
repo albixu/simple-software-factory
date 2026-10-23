@@ -34,7 +34,7 @@ export class PlannerAgent implements Agent<PlannerInput, ImplementationPlan> {
             "code.search",
             "filesystem.read"
         ],
-        maxIteration: 8,
+        maxIterations: 8,
         outputSchema: ImplementationPlanSchema
     };
 

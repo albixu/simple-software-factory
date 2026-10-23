@@ -13,14 +13,12 @@ export class PlanningNode implements WorkflowNode {
         private readonly planner: Agent<PlannerInput, ImplementationPlan>
     ) {}
 
-    async execute(state: WorkflowState): Promise<WorkflowState> {
+    async execute(
+        state: WorkflowState,
+        context: ExecutionContext
+    ): Promise<WorkflowState> {
 
-        const context: ExecutionContext = {
-            workflowId: state.workflowId,
-            traceId: state.traceId,
-            workspace: state.workspace,
-            attempt: state.attempts.planning + 1
-        };
+        context.signal?.throwIfAborted();
 
         const plan = await this.planner.run(
             {
@@ -28,6 +26,8 @@ export class PlanningNode implements WorkflowNode {
             },
             context
         );
+
+        context.signal?.throwIfAborted();
 
         return {
             ...state,

@@ -5,4 +5,5 @@ export interface ExecutionContext {
   traceId: string;
   workspace: WorkspaceContext;
   attempt: number;
+  signal?: AbortSignal;
 }

@@ -5,4 +5,5 @@ export interface LLMRequest {
     instructions: string;
     messages: Message[];
     tools: ToolDefinition[];
+    signal?: AbortSignal;
 }

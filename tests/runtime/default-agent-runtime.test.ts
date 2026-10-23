@@ -200,7 +200,7 @@ describe(
           allowedTools: [
             "code.search"
           ],
-          maxIteration: 5,
+          maxIterations: 5,
           outputSchema: ImplementationPlanSchema
         };
 
@@ -340,7 +340,7 @@ describe(
           allowedTools: [
             "code.search"
           ],
-          maxIteration: 3,
+          maxIterations: 3,
           outputSchema:
             ImplementationPlanSchema
         };

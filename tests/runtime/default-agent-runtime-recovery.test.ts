@@ -1,22 +1,22 @@
-import {
-  describe,
-  expect,
-  it
-} from "vitest";
-import { z } from "zod";
-import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
-import { AgentDefinition } from "#/runtime/agent-definition.js";
-import { ExecutionContext } from "#/runtime/execution-context.js";
-import { ScriptedLLMClient } from "#/llm/scripted-llm-client.js";
-import { Tool } from "#/tools/tool.js";
-import { ToolDefinition } from "#/llm/tool-definition.js";
-import { ToolExecutionContext } from "#/tools/tool-execution-context.js";
-import { ToolRegistry } from "#/tools/tool-registry.js";
-import { RecoverableToolError } from "#/tools/recoverable-tool-error.js";
-import { AgentGateway } from "#/gateway/agent-gateway.js";
-import { DefaultPolicyEngine } from "#/policy/default-policy-engine.js";
 import { InMemoryAuditStore } from "#/audit/in-memory-audit-store.js";
 import { InMemoryToolCallBudget } from "#/budget/in-memory-tool-call-budget.js";
+import { AgentGateway } from "#/gateway/agent-gateway.js";
+import { ScriptedLLMClient } from "#/llm/scripted-llm-client.js";
+import { ToolDefinition } from "#/llm/tool-definition.js";
+import { DefaultPolicyEngine } from "#/policy/default-policy-engine.js";
+import { AgentDefinition } from "#/runtime/agent-definition.js";
+import { DefaultAgentRuntime } from "#/runtime/default-agent-runtime.js";
+import { ExecutionContext } from "#/runtime/execution-context.js";
+import { RecoverableToolError } from "#/tools/recoverable-tool-error.js";
+import { ToolExecutionContext } from "#/tools/tool-execution-context.js";
+import { ToolRegistry } from "#/tools/tool-registry.js";
+import { Tool } from "#/tools/tool.js";
+import {
+    describe,
+    expect,
+    it
+} from "vitest";
+import { z } from "zod";
 
 const SearchInputSchema = z.object({
   query: z.string().min(1)
@@ -81,7 +81,7 @@ const agent: AgentDefinition<
     id: "planner",
     instructions: "Investigate using tools. Adapt to recoverable errors.",
     allowedTools: ["code.search"],
-    maxIteration: 4,
+    maxIterations: 4,
     outputSchema: OutputSchema
 };
 

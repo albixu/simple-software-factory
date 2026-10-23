@@ -1,47 +1,88 @@
 import type { Agent } from "#/agents/agent.js";
 import type { PlannerInput } from "#/agents/planner/planner-input.js";
 import type { ImplementationPlan } from "#/domain/implementation-plan.js";
+import type { ExecutionContext } from "#/runtime/execution-context.js";
+import type { WorkflowState } from "#/workflow/workflow-state.js";
 
 import {
+  beforeEach,
   describe,
   expect,
-  it
+  it,
+  vi
 } from "vitest";
 
 import { FakePlannerAgent } from "#/agents/planner/fake-planner.agent.js";
 import { PlanningNode } from "#/workflow/nodes/planning.node.js";
-import { WorkflowState } from "#/workflow/workflow-state.js";
 
+/*
+ * Contexto de ejecución compartido.
+ */
+
+const context: ExecutionContext = {
+  workflowId: "wf-test",
+  traceId: "trace-test",
+  attempt: 1,
+  workspace: {
+    id: "workspace-test",
+    root: "/tmp/repository"
+  }
+};
+
+/*
+ * Factoría para crear un estado nuevo
+ * en cada test.
+ */
+
+function createInitialState(
+  title = "ORA-30926",
+  description = "MERGE fails"
+): WorkflowState {
+  return {
+    workflowId: "wf-test",
+    traceId: "trace-test",
+
+    workspace: {
+      id: "workspace-test",
+      root: "/tmp/repository"
+    },
+
+    issue: {
+      id: "ISSUE-001",
+      title,
+      description
+    },
+
+    status: "planning",
+
+    attempts: {
+      planning: 0,
+      implementation: 0,
+      review: 0
+    }
+  };
+}
+
+/*
+ * Planner que devuelve una confianza baja.
+ */
 
 class LowConfidencePlanner
-  implements Agent<
-    PlannerInput,
-    ImplementationPlan
-  > {
+  implements Agent<PlannerInput, ImplementationPlan> {
 
-  readonly id =
-    "low-confidence-planner";
-
+  readonly id = "low-confidence-planner";
 
   async run(
-    _input: PlannerInput
+    _input: PlannerInput,
+    _context: ExecutionContext
   ): Promise<ImplementationPlan> {
-
     return {
-      rootCause:
-        "Insufficient evidence",
-
-      confidence:
-        0.4,
-
+      rootCause: "Insufficient evidence",
+      confidence: 0.4,
       evidence: [],
-
       filesToModify: [],
-
       proposedChanges: [],
-
       requiredTests: [],
-
       risks: [
         "Root cause has not been established."
       ]
@@ -49,166 +90,123 @@ class LowConfidencePlanner
   }
 }
 
-describe(
-  "PlanningNode",
-  () => {
+/*
+ * Mock para verificar las llamadas al Planner.
+ */
 
-    it(
-      "moves the workflow to implementing when confidence is high",
-      async () => {
-
-        const planner =
-          new FakePlannerAgent();
-
-        const node =
-          new PlanningNode(
-            planner
-          );
-
-
-        const state:
-          WorkflowState = {
-
-          workflowId:
-            "wf-test",
-
-          traceId:
-            "trace-test",
-
-          workspace: {
-            id:
-              "workspace-test",
-
-            root:
-              "/tmp/repository"
-          },
-
-          issue: {
-            id:
-              "ISSUE-001",
-
-            title:
-              "ORA-30926",
-
-            description:
-              "MERGE fails"
-          },
-
-          status:
-            "planning",
-
-          attempts: {
-            planning: 0,
-            implementation: 0,
-            review: 0
-          }
-        };
-
-
-        const result =
-          await node.execute(
-            state
-          );
-
-
-        expect(
-          result.status
-        ).toBe(
-          "implementing"
-        );
-
-        expect(
-          result.plan
-        ).toBeDefined();
-
-        expect(
-          result.attempts.planning
-        ).toBe(1);
-
-      }
-    );
-
-  }
+const run = vi.fn(
+  async (
+    _input: PlannerInput,
+    _context: ExecutionContext
+  ): Promise<ImplementationPlan> => ({
+    rootCause: "Missing null check",
+    confidence: 0.9,
+    evidence: [],
+    filesToModify: [],
+    proposedChanges: [],
+    requiredTests: [],
+    risks: []
+  })
 );
 
-describe(
-  "PlanningNode low confidence",
-  () => {
+const mockPlanner: Agent<
+  PlannerInput,
+  ImplementationPlan
+> = {
+  id: "planner",
+  run
+};
 
-    it(
-      "moves the workflow to human review",
-      async () => {
+describe("PlanningNode", () => {
 
-        const planner =
-          new LowConfidencePlanner();
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-        const node =
-          new PlanningNode(
-            planner
-          );
+  it(
+    "moves the workflow to implementing when confidence is high",
+    async () => {
 
+      const planner = new FakePlannerAgent();
+      const node = new PlanningNode(planner);
 
-        const state:
-          WorkflowState = {
+      const state = createInitialState();
 
-          workflowId:
-            "wf-test",
+      const result = await node.execute(
+        state,
+        context
+      );
 
-          traceId:
-            "trace-test",
+      expect(result.status).toBe("implementing");
+      expect(result.plan).toBeDefined();
+      expect(result.attempts.planning).toBe(1);
+    }
+  );
 
-          workspace: {
-            id:
-              "workspace-test",
+  it(
+    "moves the workflow to human review when confidence is low",
+    async () => {
 
-            root:
-              "/tmp/repository"
-          },
+      const planner = new LowConfidencePlanner();
+      const node = new PlanningNode(planner);
 
-          issue: {
-            id:
-              "ISSUE-001",
+      const state = createInitialState(
+        "Unknown failure",
+        "The cause cannot be established."
+      );
 
-            title:
-              "Unknown failure",
+      const result = await node.execute(
+        state,
+        context
+      );
 
-            description:
-              "The cause cannot be established."
-          },
+      expect(result.status).toBe("human_review");
+      expect(result.plan?.confidence).toBe(0.4);
+      expect(result.attempts.planning).toBe(1);
+    }
+  );
 
-          status:
-            "planning",
+  it(
+    "propagates execution context to planner",
+    async () => {
 
-          attempts: {
-            planning: 0,
-            implementation: 0,
-            review: 0
-          }
-        };
+      const node = new PlanningNode(mockPlanner);
+      const state = createInitialState();
 
+      await node.execute(state, context);
 
-        const result =
-          await node.execute(
-            state
-          );
+      expect(run).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          issue: state.issue
+        }),
+        context
+      );
+    }
+  );
 
+  it(
+    "does not execute the planner if cancelled",
+    async () => {
 
-        expect(
-          result.status
-        ).toBe(
-          "human_review"
-        );
+      const controller = new AbortController();
 
-        expect(
-          result.plan?.confidence
-        ).toBe(0.4);
+      controller.abort(
+        new Error("Workflow cancelled")
+      );
 
-        expect(
-          result.attempts.planning
-        ).toBe(1);
+      const cancelledContext: ExecutionContext = {
+        ...context,
+        signal: controller.signal
+      };
 
-      }
-    );
+      const node = new PlanningNode(mockPlanner);
+      const state = createInitialState();
 
-  }
-);
+      await expect(
+        node.execute(state, cancelledContext)
+      ).rejects.toThrow("Workflow cancelled");
+
+      expect(run).not.toHaveBeenCalled();
+    }
+  );
+});

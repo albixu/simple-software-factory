@@ -10,7 +10,14 @@ export class ScriptedLLMClient implements LLMClient {
     constructor(private readonly responses: LLMResponse[]) {}
 
     async generate(request: LLMRequest): Promise<LLMResponse> {
-        this.requests.push(structuredClone(request));
+        request.signal?.throwIfAborted();
+
+        this.requests.push({
+            instructions: request.instructions,
+            messages: structuredClone(request.messages),
+            tools: structuredClone(request.tools),
+            ...(request.signal ? { signal: request.signal } : {})
+        });
 
         const response = this.responses[this.index];
 
@@ -19,6 +26,8 @@ export class ScriptedLLMClient implements LLMClient {
         }
 
         this.index++;
+
+        request.signal?.throwIfAborted();
 
         return response;
     }

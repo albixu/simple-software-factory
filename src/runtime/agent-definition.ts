@@ -4,7 +4,7 @@ export interface AgentDefinition <O> {
     id: string;
     instructions: string;
     allowedTools: string[];
-    maxIteration: number;
+    maxIterations: number;
     maxRecoverableToolErrors?: number;
     outputSchema: z.ZodType<O>;
 }

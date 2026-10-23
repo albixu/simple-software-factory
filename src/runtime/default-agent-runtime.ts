@@ -3,9 +3,9 @@ import { AgentDefinition } from "#/runtime/agent-definition.js";
 import { AgentRuntime } from "#/runtime/agent-runtime.js";
 import { ExecutionContext } from "#/runtime/execution-context.js";
 import { Message } from "#/runtime/message.js";
-import { ToolRegistry } from "#/tools/tool-registry.js";
-import { RecoverableToolError } from "#/tools/recoverable-tool-error.js";
 import { ToolCallExecutor } from "#/runtime/tool-call-executor.js";
+import { RecoverableToolError } from "#/tools/recoverable-tool-error.js";
+import { ToolRegistry } from "#/tools/tool-registry.js";
 
 
 
@@ -41,12 +41,17 @@ export class DefaultAgentRuntime implements AgentRuntime{
 
         let recoverableErrors = 0;
 
-        for(let iteration = 0; iteration < agent.maxIteration; iteration++) {
+        for(let iteration = 0; iteration < agent.maxIterations; iteration++) {
+            context.signal?.throwIfAborted();
+
             const response = await this.llm.generate({
                 instructions: agent.instructions,
                 messages,
-                tools: this.tools.describe(agent.allowedTools)
+                tools: this.tools.describe(agent.allowedTools),
+                ...(context.signal ? { signal: context.signal } : {})
             });
+
+            context.signal?.throwIfAborted();
 
             if (response.type === "final") {
                 // Final response
@@ -66,6 +71,8 @@ export class DefaultAgentRuntime implements AgentRuntime{
             });
 
             for(const call of response.calls) {
+                context.signal?.throwIfAborted();
+
                 this.assertToolAllowed(agent, call.name);
 
                 try {
@@ -73,8 +80,11 @@ export class DefaultAgentRuntime implements AgentRuntime{
                         agentId: agent.id,
                         tool: call.name,
                         arguments: call.arguments,
-                        context: context
+                        context: context,
+                        ...(context.signal ? { signal: context.signal } : {})
                     });
+
+                    context.signal?.throwIfAborted();
 
                     messages.push({
                         role: "tool",
@@ -82,6 +92,12 @@ export class DefaultAgentRuntime implements AgentRuntime{
                         content: JSON.stringify(result)
                     });
                 } catch (error) {
+                    /*
+                     * La cancelación del workflow
+                     * siempre tiene prioridad.
+                     */
+                    context.signal?.throwIfAborted();
+
                     /*
                      * Sólo recuperamos errores
                      * explícitamente clasificados.
@@ -122,7 +138,7 @@ export class DefaultAgentRuntime implements AgentRuntime{
             }
         }
 
-        throw new Error(`Agent ${agent.id} exceeded maximum iterations (${agent.maxIteration})`);
+        throw new Error(`Agent ${agent.id} exceeded maximum iterations (${agent.maxIterations})`);
     }
 
 
