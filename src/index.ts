@@ -19,6 +19,15 @@ import { FilesystemReadTool } from "#/tools/filesystem-read/filesystem-read.tool
 import { WorkflowState } from "#/workflow/workflow-state.js";
 import { WorkflowDeadlineExecutor } from "#/workflow/workflow-deadline-executor.js";
 import { ExecutionContext } from "#/runtime/execution-context.js";
+import { FileCheckpointStore } from "#/workflow/checkpoints/file-checkpoint-store.js";
+import { CheckpointedStepExecutor } from "#/workflow/checkpoints/checkpointed-step-executor.js";
+import { WorkflowStateSchema } from "#/workflow/workflow-state.schema.js";
+
+
+const checkpointStore = new FileCheckpointStore<WorkflowState>(
+  "./.checkpoints",
+  value => WorkflowStateSchema.parse(value)
+);
 
 
 async function main(): Promise<void> {
@@ -80,7 +89,9 @@ async function main(): Promise<void> {
 
   const planningNode = new PlanningNode(planner);
 
-  const workflowEngine = new WorkflowEngine([planningNode]);
+  const checkpointExecutor = new CheckpointedStepExecutor(checkpointStore);
+
+  const workflowEngine = new WorkflowEngine([planningNode], checkpointExecutor);
 
   const workflowId = randomUUID();
 

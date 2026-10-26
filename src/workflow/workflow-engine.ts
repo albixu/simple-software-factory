@@ -1,14 +1,16 @@
+import { ExecutionContext } from "#/runtime/execution-context.js";
+import { CheckpointedStepExecutor } from "#/workflow/checkpoints/checkpointed-step-executor.js";
 import { WorkflowNode } from "#/workflow/nodes/workflow-node.js";
 import { WorkflowState } from "#/workflow/workflow-state.js";
 import { WorkflowStatus } from "#/workflow/workflow-status.js";
-import { ExecutionContext } from "#/runtime/execution-context.js";
 
 export class WorkflowEngine {
 
     private readonly nodes = new Map<WorkflowStatus, WorkflowNode>
 
     constructor(
-        nodes: WorkflowNode[]    
+        nodes: WorkflowNode[],
+        private readonly checkpointExecutor: CheckpointedStepExecutor<WorkflowState>
     ) {
         for (const node of nodes) {
             this.nodes.set(
@@ -22,7 +24,7 @@ export class WorkflowEngine {
         initialState: WorkflowState,
         context:ExecutionContext
     ): Promise<WorkflowState> {
-        let state = initialState;
+        let state = await this.checkpointExecutor.resume(initialState, context);
 
         while(!this.isTerminal(state.status)) {
             context.signal?.throwIfAborted();
@@ -33,7 +35,11 @@ export class WorkflowEngine {
                 throw new Error(`No workflow node for status: ${state.status}`);
             }
 
-            state = await node.execute(state, context);
+            state = await this.checkpointExecutor.execute(
+                state,
+                context,
+                (currentState, executionContext) => node.execute(currentState, executionContext)
+            );
 
             context.signal?.throwIfAborted();
         }
