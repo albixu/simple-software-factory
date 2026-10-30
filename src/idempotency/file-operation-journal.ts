@@ -50,6 +50,15 @@ export type OperationReservation =
         };
 
 
+export type OperationInspection = 
+    |   { kind: "missing" }
+    |   { kind: "started" }
+    |   {
+            kind: "completed";
+            result: string;
+        }
+
+
 export class FileOperationJournal {
 
     constructor(private readonly directory: string) {}
@@ -196,5 +205,54 @@ export class FileOperationJournal {
             this.directory,
             `${hash}.json`
         );
+    }
+
+
+    async inspect(
+        key: string,
+        inputHash: string
+    ): Promise<OperationInspection> {
+        if (!key.trim()) {
+            throw new Error("Operation key cannot be empty");
+        }
+
+        const path = this.getPath(key);
+
+        let content: string;
+
+        try {
+            content = await readFile(
+                path,
+                "utf8"
+            );
+        } catch (error) {
+            const code = (error as NodeJS.ErrnoException).code;
+
+            if (code === "ENOENT") {
+                return { kind: "missing" };
+            }
+
+            throw error;
+        }
+
+        const record = OperationRecordSchema.parse(JSON.parse(content));
+
+        if (
+            record.key !== key ||
+            record.inputHash !== inputHash
+        ) {
+            throw new Error("Idempotency key reused with different input");
+        }
+
+        if (record.status === "completed") {
+            return {
+                kind: "completed",
+                result: record.result
+            };
+        }
+
+        return {
+            kind: "started"
+        };
     }
 }
