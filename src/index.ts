@@ -22,6 +22,24 @@ import { ExecutionContext } from "#/runtime/execution-context.js";
 import { FileCheckpointStore } from "#/workflow/checkpoints/file-checkpoint-store.js";
 import { CheckpointedStepExecutor } from "#/workflow/checkpoints/checkpointed-step-executor.js";
 import { WorkflowStateSchema } from "#/workflow/workflow-state.schema.js";
+import pg from "pg";
+import { PgOperationJournal } from "#/idempotency/pg-operation-journal.js";
+import { PgIdempotentOperationExecutor } from "#/idempotency/pg-idempotent-operation-executor.js";
+
+
+const { Pool } = pg;
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required");
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl
+});
+
+const journal = new PgOperationJournal(pool, 60);
+const idempotentExecutor = new PgIdempotentOperationExecutor(journal);
 
 
 const checkpointStore = new FileCheckpointStore<WorkflowState>(
