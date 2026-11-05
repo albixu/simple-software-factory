@@ -23,6 +23,12 @@ interface OperationRow {
 }
 
 
+export interface ExpiredOperation {
+    operationKey: string;
+    inputHash: string;
+}
+
+
 export class PgOperationJournal {
 
     constructor(
@@ -236,5 +242,38 @@ export class PgOperationJournal {
         if (updated.rowCount !== 1) {
             throw new Error("Reconciliation ownership lost");
         }
+    }
+
+
+    async findExpired(limit = 20): Promise<ExpiredOperation[]> {
+        if (
+            !Number.isInteger(limit) ||
+            limit < 1 ||
+            limit > 1000
+        ) {
+            throw new Error("Invalid recovery batch size");
+        }
+
+        const result = await this.pool.query<{
+            operation_key: string;
+            input_hash: string;
+        }>(
+            `
+                SELECT
+                    operation_key,
+                    input_hash
+                FROM agent_operations
+                WHERE status IN ('started', 'reconciling')
+                    AND lease_until < NOW()
+                ORDER BY lease_until ASC
+                LIMIT $1
+            `,
+            [limit]
+        );
+
+        return result.rows.map(row => ({
+            operationKey: row.operation_key,
+            inputHash: row.input_hash
+        }));
     }
 }
