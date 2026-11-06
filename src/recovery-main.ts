@@ -1,6 +1,8 @@
 import pg from "pg";
 import { PgOperationJournal } from "#/idempotency/pg-operation-journal.js";
 import { RecoveryWorker } from "#/idempotency/recovery/recovery-worker.js";
+import { LeaseHeartbeat } from "./idempotency/recovery/lease-heartbeat.js";
+import { setTimeout as sleep } from "node:timers/promises";
 
 
 const { Pool } = pg;
@@ -17,6 +19,7 @@ const pool = new Pool({
 
 const journal = new PgOperationJournal(pool, 60);
 
+const heartbeat = new LeaseHeartbeat(20_000);
 /*
  * Adaptador de ejemplo.
  * Sustituiremos esta implementación
@@ -30,20 +33,29 @@ const worker = new RecoveryWorker(
         return {
             kind: "unknown"
         };
-    }
+    },
+    heartbeat
 );
 
-let stopping = false;
+const shutdownController = new AbortController();
 
 process.once("SIGINT", () => {
-    stopping = true;
+    shutdownController.abort(
+        new Error("SIGINT received")
+    );
+});
+
+process.once("SIGTERM", () => {
+    shutdownController.abort(
+        new Error("SIGTERM received")
+    );
 });
 
 async function main(): Promise<void> {
     try {
-        while (!stopping) {
+        while (!shutdownController.signal.aborted) {
             try {
-                const metrics = await worker.runOnce(20);
+                const metrics = await worker.runOnce(20,shutdownController.signal);
                 
                 console.log(JSON.stringify({
                     event: "recovery.cycle.completed",
@@ -57,9 +69,11 @@ async function main(): Promise<void> {
              * Esperamos 10 segundos antes
              * de iniciar el siguiente ciclo
              */
-            await new Promise<void>(resolve => {
-                setTimeout(resolve, 10_000);
-            });
+            await sleep(
+                10_000,
+                undefined,
+                { signal: shutdownController.signal }
+            )
         }
     } finally {
         await pool.end();

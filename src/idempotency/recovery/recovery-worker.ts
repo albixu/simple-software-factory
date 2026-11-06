@@ -2,6 +2,7 @@ import { performance } from "node:perf_hooks";
 import type { PgOperationJournal } from "#/idempotency/pg-operation-journal.js";
 import { createRecoveryMetrics } from "#/idempotency/recovery/recovery-metrics.js";
 import type { RecoveryMetrics } from "#/idempotency/recovery/recovery-metrics.js";
+import { LeaseHeartbeat } from "#/idempotency/recovery/lease-heartbeat.js";
 
 export type RecoveryLookupResult = 
     |   {
@@ -13,18 +14,25 @@ export type RecoveryLookupResult =
         };
 
 
-export type RecoveryLookup = (operationKey: string) => Promise<RecoveryLookupResult>;
+export type RecoveryLookup = (
+    operationKey: string,
+    signal: AbortSignal
+) => Promise<RecoveryLookupResult>;
 
 
 export class RecoveryWorker {
 
     constructor(
         private readonly journal: PgOperationJournal,
-        private readonly lookup: RecoveryLookup
+        private readonly lookup: RecoveryLookup,
+        private readonly heartbeat: LeaseHeartbeat
     ) {}
 
 
-    async runOnce(batchSize = 20): Promise<RecoveryMetrics> {
+    async runOnce(
+        batchSize = 20,
+        signal?: AbortSignal
+    ): Promise<RecoveryMetrics> {
         const startedAt = performance.now();
         const metrics = createRecoveryMetrics();
 
@@ -40,6 +48,8 @@ export class RecoveryWorker {
          */
         for(const operation of operations) {
             const {operationKey, inputHash} = operation;
+
+            signal?.throwIfAborted();
 
             /*
              * 3. Intentamos reclamar la reconciliación
@@ -60,11 +70,29 @@ export class RecoveryWorker {
                 continue;
             }
 
+            metrics.claimed++;
+
             /*
              * 4. Consultamos el sistema externo
              */
             try {
-                const result = await this.lookup(operationKey);
+                const result = await this.heartbeat.run(
+                    {
+                        renew: () => 
+                            this.journal.renewReconciliationLease(
+                                operationKey,
+                                inputHash,
+                                token
+                            )
+                    },
+
+                    operationSignal => this.lookup(
+                        operationKey,
+                        operationSignal
+                    ),
+
+                    signal
+                );
 
                 /*
                  * 5. No existe confirmación suficiente
@@ -85,10 +113,9 @@ export class RecoveryWorker {
             } catch {
                 metrics.failed++;
             }
-
-            metrics.durationMs = performance.now() - startedAt;
-
         }
+        
+        metrics.durationMs = performance.now() - startedAt;
 
         return metrics;
     }

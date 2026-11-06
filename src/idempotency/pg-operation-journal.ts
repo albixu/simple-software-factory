@@ -209,6 +209,37 @@ export class PgOperationJournal {
     }
 
 
+    async renewReconciliationLease(
+        operationKey: string,
+        inputHash: string,
+        token: string
+    ): Promise<boolean> {
+
+        const result = await this.pool.query(
+            `
+                UPDATE agent_operations
+                SET
+                    lease_until = NOW() + ($4::int * INTERVAL '1 second'),
+                    updated_at = NOW()
+                WHERE operation_key = $1
+                    AND input_hash = $2
+                    AND owner_token = $3::uuid
+                    AND status = 'reconciling'
+                    AND lease_until > NOW()
+                RETURNING operation_key
+            `,
+            [
+                operationKey,
+                inputHash,
+                token,
+                this.leaseSeconds
+            ]
+        );
+
+        return result.rowCount === 1;
+    }
+
+
     async confirmReconciliation(
         operationKey: string,
         inputHash: string,
